@@ -42,6 +42,11 @@ extension Home {
         ) var fetchedProfiles: FetchedResults<OverridePresets>
 
         @FetchRequest(
+            entity: Auto_ISF.entity(),
+            sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)]
+        ) var fetchedAISF: FetchedResults<Auto_ISF>
+
+        @FetchRequest(
             entity: TempTargets.entity(),
             sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)]
         ) var sliderTTpresets: FetchedResults<TempTargets>
@@ -513,10 +518,33 @@ extension Home {
 
         var activeIOBView: some View {
             addBackground()
-                .frame(minHeight: 405)
+                .frame(minHeight: 190)
                 .overlay {
                     ActiveIOBView(
                         data: $state.iobData,
+                    )
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .addShadows()
+                .padding(.horizontal, 10)
+        }
+
+        var activeCOBView: some View {
+            addBackground()
+                .frame(minHeight: 190)
+                .overlay {
+                    ActiveCOBView(data: $state.iobData)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .addShadows()
+                .padding(.horizontal, 10)
+        }
+
+        var insulinView: some View {
+            addBackground()
+                .frame(minHeight: 280)
+                .overlay {
+                    InsulinSummaryView(
                         neg: $state.neg,
                         tddChange: $state.tddChange,
                         tddAverage: $state.tddAverage,
@@ -531,11 +559,11 @@ extension Home {
                 .padding(.horizontal, 10)
         }
 
-        var activeCOBView: some View {
+        var mealsView: some View {
             addBackground()
                 .frame(minHeight: 190)
                 .overlay {
-                    ActiveCOBView(data: $state.iobData)
+                    MealsSummaryView(data: $state.mealData)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 15))
                 .addShadows()
@@ -751,7 +779,7 @@ extension Home {
                 .font(.timeSettingFont)
                 .background(TimeEllipse(characters: 10))
                 .onTapGesture {
-                    if state.autoisf {
+                    if (state.autoisf && !disabled()) || enabled() {
                         displayAutoHistory.toggle()
                     } else {
                         displayDynamicHistory.toggle()
@@ -759,6 +787,18 @@ extension Home {
                 }
             }
             .offset(x: 130)
+        }
+
+        private func enabled() -> Bool {
+            guard let or = fetchedPercent.first, or.enabled else { return false }
+            guard let aisf = fetchedAISF.first else { return false }
+            return aisf.autoisf
+        }
+
+        private func disabled() -> Bool {
+            guard let or = fetchedPercent.first, or.enabled else { return false }
+            guard let aisf = fetchedAISF.first else { return false }
+            return !aisf.autoisf
         }
 
         private var animateLoopView: Bool {
@@ -808,13 +848,17 @@ extension Home {
 
                                 // COB Chart
                                 if state.carbData > 0 {
-                                    activeCOBView
+                                    activeCOBView.padding(.bottom, 15)
                                 }
 
                                 // IOB Chart
                                 if !state.iobData.isEmpty {
-                                    activeIOBView
+                                    activeIOBView.padding(.bottom, 15)
                                 }
+
+                                // Summary Views
+                                insulinView.padding(.bottom, 15)
+                                mealsView.padding(.bottom, 15)
                             }
                             .background {
                                 // Track vertical scroll
