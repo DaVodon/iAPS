@@ -44,6 +44,7 @@ platform :ios do
   desc "Build iAPS"
   lane :build_iAPS do
     setup_ci if ENV['CI']
+    ENV["MATCH_READONLY"] = false.to_s
 
     update_project_team(
       path: "#{GITHUB_WORKSPACE}/FreeAPS.xcodeproj",
@@ -70,6 +71,7 @@ platform :ios do
     
     match(
       type: "appstore",
+      readonly: false,
       git_basic_authorization: Base64.strict_encode64("#{GITHUB_REPOSITORY_OWNER}:#{GH_PAT}"),
       app_identifier: [
         "#{APP_IDENTIFIER}",
